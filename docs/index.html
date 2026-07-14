@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShootSort — Offload cards. Verified.</title>
+<meta name="description" content="Your card stays untouched. Your copy is proven on disk.">
+<meta property="og:title" content="ShootSort — Offload cards. Verified.">
+<meta property="og:description" content="Your card stays untouched. Your copy is proven on disk.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ShootSort">
+<meta property="og:url" content="https://shootsort.com/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ShootSort — Offload cards. Verified.">
+<meta name="twitter:description" content="Your card stays untouched. Your copy is proven on disk.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='15'%20fill='%230A1024'/%3E%3Crect%20x='2.5'%20y='2.5'%20width='59'%20height='59'%20rx='13'%20fill='none'%20stroke='%233D82FF'%20stroke-width='4'/%3E%3Cpath%20d='M19%2033.5l9%209L45%2022.5'%20fill='none'%20stroke='%233D82FF'%20stroke-width='7'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+/* ============ Tokens (single dark theme — Orbit Navy) ============ */
+:root {
+  --canvas: #06091A;
+  --surface: #0A1024;
+  --raised: #131B3B;
+  --elev: #1B2447;
+  --border: #27325C;
+  --sep: #1A2340;
+  --text: #F1F4FC;
+  --text2: #A6AEC4;
+  --text3: #6B7593;
+  --accent: #3D82FF;
+  --accent-deep: #0066FF;
+  --accent-hi: #7AA7FF;
+  --accent-soft: rgba(61,130,255,.14);
+  --ok: #34D399;
+  --ok-soft: rgba(52,211,153,.14);
+  --warn: #F5C15A;
+  --warn-soft: rgba(245,193,90,.13);
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --shadow-win: 0 2px 6px rgba(0,0,0,.35), 0 24px 70px rgba(0,0,0,.5);
+  --shadow-card: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+}
+
+/* ============ Base ============ */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--canvas); color: var(--text);
+  font-family: var(--sans); font-size: 16px; line-height: 1.62;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: var(--accent-hi); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+p { margin: 0 0 1em; }
+h1, h2, h3 { line-height: 1.2; margin: 0; text-wrap: balance; letter-spacing: -.02em; }
+.mono { font-family: var(--mono); }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+/* ============ Motion (calm) ============ */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-rise { opacity: 0; transform: translateY(10px); animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+  .hero-rise.d1 { animation-delay: .08s; }
+  .hero-rise.d2 { animation-delay: .16s; }
+  .hero-rise.d3 { animation-delay: .26s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .js .reveal { opacity: 0; transform: translateY(8px); transition: opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1); }
+  .js .reveal.in { opacity: 1; transform: none; }
+  .btn { transition: filter .15s ease, border-color .15s ease; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation: none !important; transition: none !important; }
+}
+
+/* ============ Nav ============ */
+.nav {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(6,9,26,.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--sep);
+}
+.nav-in { display: flex; align-items: center; gap: 26px; height: 60px; }
+.wordmark { font-weight: 800; font-size: 17px; letter-spacing: -.02em; color: var(--text); }
+.wordmark:hover { text-decoration: none; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; align-items: center; }
+.nav-links a { color: var(--text2); font-size: 14px; font-weight: 500; }
+.nav-links a:hover { color: var(--text); text-decoration: none; }
+@media (max-width: 560px) { .nav-links a.nav-plain { display: none; } }
+
+/* ============ Buttons ============ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+  border-radius: 10px; padding: 12px 22px; border: 1px solid transparent;
+  cursor: pointer; white-space: nowrap;
+}
+.btn:hover { text-decoration: none; }
+.btn.primary {
+  background: linear-gradient(180deg, #4A8CFF, #2E6FE8); color: #fff;
+  box-shadow: 0 1px 3px rgba(0,40,120,.45), inset 0 1px 0 rgba(255,255,255,.14);
+}
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.secondary { background: var(--raised); border-color: var(--border); color: var(--text); }
+.btn.secondary:hover { border-color: var(--accent); }
+.btn.sm { font-size: 13.5px; padding: 8px 16px; border-radius: 8px; }
+
+/* ============ Hero ============ */
+.hero {
+  position: relative; padding: 88px 0 64px; text-align: center; overflow: hidden;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(1100px 500px at 20% -10%, rgba(61,130,255,.14), transparent 60%),
+    radial-gradient(900px 480px at 85% -6%, rgba(0,102,255,.09), transparent 55%);
+}
+.hero .wrap { position: relative; }
+.hero h1 {
+  font-size: clamp(40px, 7vw, 68px); font-weight: 800; letter-spacing: -.035em;
+  margin: 0 auto 20px; max-width: 16ch;
+}
+.hero h1 .vfd { color: var(--accent); }
+.hero .sub {
+  font-size: clamp(16px, 2.4vw, 19px); color: var(--text2); line-height: 1.65;
+  max-width: 62ch; margin: 0 auto 30px;
+}
+.cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero .fine { font-size: 13px; color: var(--text3); margin-top: 18px; }
+.hero .fine b { color: var(--text2); font-weight: 600; }
+
+/* ============ Stage + window mockup (adapted mock kit) ============ */
+.stage {
+  margin-top: 52px;
+  background:
+    radial-gradient(1100px 500px at 20% -10%, rgba(61,130,255,.14), transparent 60%),
+    radial-gradient(900px 500px at 95% 110%, rgba(0,82,214,.12), transparent 55%),
+    linear-gradient(160deg, #0B1230, #060A1E 70%);
+  border: 1px solid var(--sep); border-radius: 16px;
+  padding: clamp(16px, 4vw, 44px); display: flex; justify-content: center;
+}
+.mock { color: var(--text); font-size: 13px; line-height: 1.45; text-align: left; max-width: 100%; min-width: 0; }
+.win {
+  width: 720px; max-width: 100%; background: var(--canvas);
+  border: 1px solid rgba(255,255,255,.09); border-radius: 11px;
+  box-shadow: var(--shadow-win); overflow: hidden;
+}
+.tbar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--surface); border-bottom: 1px solid var(--sep);
+}
+.lights { display: flex; gap: 7px; flex: 0 0 auto; }
+.lights i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #FF5F57; }
+.lights i:nth-child(2) { background: #FEBC2E; }
+.lights i:nth-child(3) { background: #28C840; }
+.ttitle { font-size: 12px; font-weight: 600; color: var(--text2); }
+.tspacer { flex: 1; }
+.win-body { display: flex; min-height: 0; }
+.win-side {
+  width: 176px; flex: 0 0 176px; background: var(--surface);
+  border-right: 1px solid var(--sep); padding: 10px 8px; font-size: 12px;
+}
+.side-head { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); padding: 12px 10px 5px; }
+.side-item {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 7px;
+  color: var(--text2); font-weight: 500; margin-bottom: 1px;
+}
+.side-item.sel { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+.side-item .glyph { width: 16px; text-align: center; font-size: 12px; }
+.side-item .count { margin-left: auto; font-size: 10px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.win-main { flex: 1; min-width: 0; background: var(--canvas); padding: 16px; }
+@media (max-width: 700px) { .win-side { display: none; } }
+
+.m-h { font-size: 13px; font-weight: 700; color: var(--text); }
+.m-sub { font-size: 11px; color: var(--text3); }
+.m-label { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text3); }
+.m-row-flex { display: flex; align-items: center; gap: 10px; }
+.m-spacer { flex: 1; }
+.m-icon {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 14px; flex: 0 0 30px;
+}
+.m-icon.blue { background: var(--accent-soft); color: var(--accent); }
+.m-icon.green { background: var(--ok-soft); color: var(--ok); }
+.m-pill {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px;
+}
+.m-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.m-pill.verify { color: var(--ok); background: var(--ok-soft); }
+.m-pill.watching { color: var(--ok); background: var(--ok-soft); }
+.m-badge {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 700;
+  border-radius: 5px; padding: 2px 7px; letter-spacing: .02em;
+}
+.m-badge.cam { background: var(--raised); color: var(--text2); border: 1px solid var(--border); }
+.m-badge.ok { background: var(--ok-soft); color: var(--ok); }
+.m-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+
+.m-progress { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; display: flex; }
+.m-progress .vfill { background: var(--ok); }
+.m-progress .fill { background: var(--accent); border-radius: 0 4px 4px 0; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--text2); margin-top: 9px; }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .swatch { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.legend .swatch.copied { background: var(--accent); }
+.legend .swatch.verified { background: var(--ok); }
+
+.m-list { display: flex; flex-direction: column; }
+.m-li {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-bottom: 1px solid var(--sep); font-size: 12px;
+}
+.m-li:last-child { border-bottom: 0; }
+.m-li .fname { font-weight: 600; color: var(--text); font-family: var(--mono); font-size: 11.5px; }
+.m-li .fmeta { font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.vtick { color: var(--ok); font-weight: 700; }
+.ctick { color: var(--accent); font-weight: 700; }
+
+.m-freespace { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; display: flex; }
+.m-freespace .used { background: var(--text3); opacity: .55; }
+.m-freespace .incoming { background: var(--accent); }
+
+.m-tree { font-family: var(--mono); font-size: 12px; line-height: 1.9; color: var(--text2); margin: 0; overflow-x: auto; }
+.m-tree b { color: var(--text); font-weight: 600; }
+.m-tree .cnt { color: var(--text3); font-size: 11px; }
+.m-tree .acc { color: var(--accent); }
+.g-sd::before { content: "▤"; }
+.g-drive::before { content: "▣"; }
+
+/* ============ Sections ============ */
+section { padding: 96px 0 0; }
+.sec-head { max-width: 720px; margin: 0 auto 44px; text-align: center; }
+.kicker {
+  font-family: var(--mono); font-size: 12px; color: var(--accent-hi);
+  letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px;
+}
+.sec-head h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 14px; }
+.sec-head .sub { color: var(--text2); font-size: 16.5px; }
+
+/* ============ Verify rail ============ */
+.rail { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; counter-reset: step; }
+.rail .step {
+  position: relative; background: var(--surface); border: 1px solid var(--sep);
+  border-radius: 12px; padding: 18px 16px 16px; box-shadow: var(--shadow-card);
+}
+.rail .step .num {
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-hi);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 8px; background: var(--accent-soft);
+  margin-bottom: 12px;
+}
+.rail .step.green .num { color: var(--ok); background: var(--ok-soft); }
+.rail .step h3 { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.01em; }
+.rail .step p { font-size: 13px; color: var(--text2); line-height: 1.55; margin: 0; }
+.rail .step code { font-family: var(--mono); font-size: 11px; color: var(--text2); background: var(--raised); border: 1px solid var(--sep); border-radius: 5px; padding: .08em .35em; white-space: nowrap; }
+@media (max-width: 980px) { .rail { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .rail { grid-template-columns: 1fr; } }
+
+.receipt-line {
+  display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin: 32px auto 0; font-size: 15px; color: var(--text2); text-align: center;
+}
+.receipt-chip {
+  display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px;
+  color: var(--ok); background: var(--ok-soft); border: 1px solid rgba(52,211,153,.3);
+  border-radius: 999px; padding: 6px 14px;
+}
+blockquote.pull {
+  margin: 56px auto 0; max-width: 760px; text-align: center;
+  font-size: clamp(21px, 3.4vw, 30px); font-weight: 700; letter-spacing: -.025em; line-height: 1.35;
+  color: var(--text); padding: 0 24px;
+}
+blockquote.pull .u { color: var(--accent); }
+blockquote.pull .g { color: var(--ok); }
+blockquote.pull::after {
+  content: ""; display: block; width: 56px; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--ok)); margin: 26px auto 0;
+}
+
+/* ============ Recipes ============ */
+.recipe-demo {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: stretch;
+  max-width: 980px; margin: 0 auto;
+}
+@media (max-width: 900px) { .recipe-demo { grid-template-columns: 1fr; } .recipe-arrow { transform: rotate(90deg); margin: -6px auto; } }
+.recipe-input {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-card); overflow: hidden; display: flex; flex-direction: column;
+}
+.recipe-input .rlabel {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text3);
+  padding: 12px 16px 0;
+}
+.recipe-input .rtext {
+  font-size: 15px; line-height: 1.7; color: var(--text); padding: 10px 16px 16px; flex: 1;
+}
+.recipe-input .rfoot {
+  border-top: 1px solid var(--sep); padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; color: var(--text3);
+}
+.recipe-input .caret { display: inline-block; width: 2px; height: 1.05em; background: var(--accent); vertical-align: -0.18em; }
+.recipe-arrow { align-self: center; color: var(--text3); font-size: 22px; }
+.recipe-output {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-card); padding: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.recipe-caption { text-align: center; color: var(--text2); font-size: 14.5px; max-width: 62ch; margin: 26px auto 0; }
+.recipe-caption .mono { font-size: 13px; color: var(--text3); }
+
+/* ============ Feature grid ============ */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 920px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+.fcard {
+  background: var(--surface); border: 1px solid var(--sep); border-radius: 14px;
+  padding: 22px; box-shadow: var(--shadow-card); position: relative;
+}
+.fcard h3 { font-size: 16px; font-weight: 700; margin: 14px 0 8px; letter-spacing: -.01em; }
+.fcard p { font-size: 13.5px; color: var(--text2); line-height: 1.6; margin: 0; }
+.fcard .fic {
+  width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent); font-size: 15px;
+}
+.pro-tag {
+  position: absolute; top: 18px; right: 18px;
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent-hi); background: var(--accent-soft); border-radius: 5px; padding: 2px 8px;
+}
+.cam-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.cam-mono {
+  font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--text2);
+  background: var(--raised); border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 7px; letter-spacing: .03em;
+}
+
+/* ============ Pro pricing ============ */
+#pro { position: relative; }
+#pro::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(900px 460px at 78% 10%, rgba(61,130,255,.10), transparent 60%);
+}
+.price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 880px; margin: 0 auto; position: relative; }
+@media (max-width: 760px) { .price-grid { grid-template-columns: 1fr; } }
+.plan {
+  background: var(--surface); border: 1px solid var(--sep); border-radius: 14px;
+  padding: 28px; box-shadow: var(--shadow-card); display: flex; flex-direction: column;
+}
+.plan.pro { border-color: var(--accent); background: linear-gradient(180deg, rgba(61,130,255,.07), rgba(61,130,255,0) 45%), var(--surface); }
+.plan .pname { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); }
+.plan.pro .pname { color: var(--accent-hi); }
+.plan .pprice { font-size: 40px; font-weight: 800; letter-spacing: -.03em; margin: 10px 0 2px; font-variant-numeric: tabular-nums; }
+.plan .pterm { font-size: 13px; color: var(--text3); margin-bottom: 6px; }
+.plan .pquip { font-size: 13.5px; color: var(--text2); font-style: italic; margin: 8px 0 0; }
+.plan ul { list-style: none; margin: 20px 0 26px; padding: 0; flex: 1; }
+.plan li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; color: var(--text2); padding: 6px 0; }
+.plan li .tick { color: var(--ok); font-weight: 700; flex: 0 0 auto; }
+.plan li b { color: var(--text); font-weight: 600; }
+.plan .sub-caption { font-size: 12.5px; color: var(--text3); margin: 14px 0 0; }
+
+/* ============ Footer ============ */
+footer {
+  margin-top: 110px; border-top: 1px solid var(--sep); padding: 40px 0 56px;
+  font-size: 13.5px; color: var(--text3);
+}
+.foot-in { display: flex; flex-direction: column; gap: 14px; }
+.foot-privacy { color: var(--text2); max-width: 74ch; }
+.foot-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+.foot-row a { color: var(--text3); }
+.foot-row a:hover { color: var(--text2); }
+</style>
+</head>
+<body>
+
+<a href="#main" style="position:absolute;left:-9999px;top:0;background:var(--raised);color:var(--text);padding:10px 16px;border-radius:8px;z-index:60" onfocus="this.style.left='16px';this.style.top='12px'" onblur="this.style.left='-9999px'">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="wordmark" href="#">ShootSort</a>
+    <nav class="nav-links" aria-label="Site">
+      <a class="nav-plain" href="#features">Features</a>
+      <a class="nav-plain" href="#pro">Pro</a>
+      <a class="nav-plain" href="#download">Download</a>
+      <a class="btn primary sm" href="https://github.com/IsaacAPerez/ShootSort-releases/releases/latest/download/ShootSort.zip">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============ Hero ============ -->
+<section class="hero" id="download" style="padding-top:88px">
+  <div class="wrap">
+    <h1 class="hero-rise">Offload cards. <span class="vfd">Verified.</span></h1>
+    <p class="sub hero-rise d1">ShootSort watches for your SD cards, organizes every file by a recipe you describe in plain English, and proves every byte landed on your SSD — your card is never touched.</p>
+    <div class="cta-row hero-rise d2">
+      <a class="btn primary" href="https://github.com/IsaacAPerez/ShootSort-releases/releases/latest/download/ShootSort.zip">Download for macOS</a>
+      <a class="btn secondary" href="#pro">ShootSort Pro — $49</a>
+    </div>
+    <p class="fine hero-rise d2">macOS 14 or later &middot; Notarized by Apple &middot; Free — Pro optional</p>
+
+    <div class="stage hero-rise d3">
+      <div class="mock" aria-label="Screenshot mockup of the ShootSort app during a verified offload">
+        <div class="win">
+          <div class="tbar">
+            <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span class="ttitle">ShootSort</span>
+            <span class="tspacer"></span>
+            <span class="m-pill watching"><span class="dot"></span>Watching for cards</span>
+          </div>
+          <div class="win-body">
+            <aside class="win-side" aria-hidden="true">
+              <div class="side-head">ShootSort</div>
+              <div class="side-item sel"><span class="glyph">●</span>Now</div>
+              <div class="side-item"><span class="glyph">≡</span>History<span class="count">148</span></div>
+              <div class="side-item"><span class="glyph">✎</span>Recipes<span class="count">3</span></div>
+              <div class="side-item"><span class="glyph">▤</span>Cards<span class="count">6</span></div>
+              <div class="side-head">Devices</div>
+              <div class="side-item"><span class="glyph g-sd"></span>A7 IV — SD</div>
+              <div class="side-item"><span class="glyph g-drive"></span>Samsung T9</div>
+            </aside>
+            <div class="win-main">
+              <div class="m-row-flex" style="margin-bottom:14px">
+                <span class="m-icon blue" aria-hidden="true">▤</span>
+                <div>
+                  <div class="m-h">A7 IV — 128 GB SD <span class="m-badge cam" style="margin-left:6px">Sony A7 IV</span></div>
+                  <div class="m-sub">412 new files &middot; 28.8 GB &rarr; Samsung T9</div>
+                </div>
+                <span class="m-spacer"></span>
+                <span class="m-pill verify"><span class="dot"></span>Verifying</span>
+              </div>
+
+              <div class="m-card" style="padding:14px 14px 12px; margin-bottom:12px">
+                <div class="m-row-flex" style="margin-bottom:8px">
+                  <span class="m-label">Offloading — 96 MB/s</span>
+                  <span class="m-spacer"></span>
+                  <span class="m-sub" style="font-variant-numeric:tabular-nums">~2 min left</span>
+                </div>
+                <div class="m-progress" role="img" aria-label="Progress: 71 percent copied, 57 percent verified">
+                  <div class="vfill" style="width:57%"></div>
+                  <div class="fill" style="width:14%"></div>
+                </div>
+                <div class="legend">
+                  <span class="key"><span class="swatch copied"></span>Copied</span>
+                  <span class="key"><span class="swatch verified"></span>Verified — read back from the drive</span>
+                </div>
+              </div>
+
+              <div class="m-card m-list" style="margin-bottom:12px">
+                <div class="m-li">
+                  <span class="vtick" aria-hidden="true">✓</span>
+                  <span class="fname">C0412.MP4</span>
+                  <span class="m-spacer"></span>
+                  <span class="fmeta">4.1 GB &middot; sha256 ✓ match</span>
+                </div>
+                <div class="m-li">
+                  <span class="vtick" aria-hidden="true">✓</span>
+                  <span class="fname">DSC04187.ARW</span>
+                  <span class="m-spacer"></span>
+                  <span class="fmeta">24.3 MB &middot; sha256 ✓ match</span>
+                </div>
+                <div class="m-li">
+                  <span class="ctick" aria-hidden="true">↻</span>
+                  <span class="fname">DSC04188.ARW</span>
+                  <span class="m-spacer"></span>
+                  <span class="fmeta">24.1 MB &middot; copying</span>
+                </div>
+              </div>
+
+              <div class="m-card" style="padding:12px 14px">
+                <div class="m-row-flex" style="margin-bottom:8px">
+                  <span class="m-label">Samsung T9</span>
+                  <span class="m-spacer"></span>
+                  <span class="m-sub" style="font-variant-numeric:tabular-nums">1.21 TB free after offload</span>
+                </div>
+                <div class="m-freespace" aria-hidden="true">
+                  <div class="used" style="width:38%"></div>
+                  <div class="incoming" style="width:4%"></div>
+                </div>
+                <div class="m-sub mono" style="margin-top:9px">T9/2026/Sony A7 IV/Photos/06 June/10620617/</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Trust / verify rail ============ -->
+<section id="trust">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">The verify sequence</div>
+      <h2>Verified or it didn&rsquo;t happen</h2>
+      <p class="sub">Most copy tools write your files and hope. ShootSort treats every file as unproven until the drive itself says otherwise.</p>
+    </div>
+    <div class="rail">
+      <div class="step reveal">
+        <span class="num" aria-hidden="true">01</span>
+        <h3>Copy to a temp file</h3>
+        <p>Every file lands as a <code>.partial</code> first. Nothing ever exists half-written under its real name.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num" aria-hidden="true">02</span>
+        <h3>Hash while copying</h3>
+        <p>A <code>SHA-256</code> fingerprint is computed from the card&rsquo;s bytes as they stream — no second read of your card.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num" aria-hidden="true">03</span>
+        <h3>Force to physical disk</h3>
+        <p>The copy is flushed all the way to the SSD&rsquo;s platters and cells — not left sitting in a write cache.</p>
+      </div>
+      <div class="step green reveal">
+        <span class="num" aria-hidden="true">04</span>
+        <h3>Read back and compare</h3>
+        <p>ShootSort re-reads the copy from the drive, bypassing the cache, and compares fingerprints byte for byte.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num" aria-hidden="true">05</span>
+        <h3>Atomic rename</h3>
+        <p>Only a proven copy gets its real name. If anything fails, the original is still safe on your card.</p>
+      </div>
+    </div>
+    <div class="receipt-line reveal">
+      <span>Every offload produces a</span>
+      <span class="receipt-chip">✓&nbsp;Receipt — 412 files verified &middot; 0 mismatches</span>
+    </div>
+    <blockquote class="pull reveal">
+      &ldquo;Your card stays <span class="u">untouched</span>. Your copy is <span class="g">proven on disk</span>.&rdquo;
+    </blockquote>
+  </div>
+</section>
+
+<!-- ============ Recipes ============ -->
+<section id="recipes">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">Recipes</div>
+      <h2>Say it. Don&rsquo;t configure it.</h2>
+      <p class="sub">No preset editors, no token syntax, no nested dialogs. Describe how you file your work; ShootSort files it that way.</p>
+    </div>
+    <div class="recipe-demo reveal">
+      <div class="recipe-input">
+        <div class="rlabel">Your recipe</div>
+        <div class="rtext">Every wedding gets its own folder named for the couple and date. RAW photos go in Photos/RAW. Drone clips go in Video/Drone.<span class="caret" aria-hidden="true"></span></div>
+        <div class="rfoot"><span aria-hidden="true">⏎</span> Compiled into rules you can inspect</div>
+      </div>
+      <div class="recipe-arrow" aria-hidden="true">&rarr;</div>
+      <div class="recipe-output">
+        <div class="m-label">Next offload</div>
+        <pre class="m-tree"><b>Weddings/</b>
+└─ <b>2026/</b>
+   └─ <b class="acc">Ana &amp; Marcus — 2026-07-09/</b>
+      ├─ Photos/RAW    <span class="cnt">412 files</span>
+      ├─ Photos/JPEG   <span class="cnt">41 files</span>
+      ├─ Video         <span class="cnt">27 files</span>
+      └─ Video/Drone   <span class="cnt">32 files</span></pre>
+        <span class="m-badge ok" style="align-self:flex-start">✓ Every file has a destination</span>
+      </div>
+    </div>
+    <p class="recipe-caption reveal">Recipes compile to exact, inspectable rules. You review the plan before a single byte moves, and the rules run entirely offline — card after card, shoot after shoot.</p>
+  </div>
+</section>
+
+<!-- ============ Feature grid ============ -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">Built for working shooters</div>
+      <h2>Everything between the card and the edit</h2>
+    </div>
+    <div class="grid">
+      <div class="fcard reveal">
+        <span class="fic" aria-hidden="true">▤</span>
+        <h3>Ten camera brands</h3>
+        <p>Card layouts, sidecars, and naming quirks handled per brand — including video formats that hide their camera model.</p>
+        <div class="cam-row" aria-label="Supported brands">
+          <span class="cam-mono">SONY</span><span class="cam-mono">CANON</span><span class="cam-mono">NIKON</span><span class="cam-mono">FUJI</span><span class="cam-mono">PANA</span><span class="cam-mono">LEICA</span><span class="cam-mono">GOPRO</span><span class="cam-mono">IN360</span><span class="cam-mono">RED</span><span class="cam-mono">BMD</span>
+        </div>
+      </div>
+      <div class="fcard reveal">
+        <span class="pro-tag">Pro</span>
+        <span class="fic" aria-hidden="true">⧉</span>
+        <h3>Backup that catches itself up</h3>
+        <p>Offload to a second drive automatically. Left it at the studio? ShootSort notices what&rsquo;s missing and catches the backup up the moment it&rsquo;s connected — verified, like everything else.</p>
+      </div>
+      <div class="fcard reveal">
+        <span class="fic" aria-hidden="true">≡</span>
+        <h3>History with Receipts</h3>
+        <p>Every offload is kept on record with its Receipt: what came off which card, where it went, and proof it matched. Searchable, and Spotlight-indexed.</p>
+      </div>
+      <div class="fcard reveal">
+        <span class="fic" aria-hidden="true">→</span>
+        <h3>NLE handoff</h3>
+        <p>When the verify completes, hand the finished folder straight to Lightroom, Final Cut Pro, or DaVinci Resolve. No re-navigating to find what just landed.</p>
+      </div>
+      <div class="fcard reveal">
+        <span class="pro-tag">Pro</span>
+        <span class="fic" aria-hidden="true">♡</span>
+        <h3>Card health</h3>
+        <p>ShootSort keeps a ledger per card — read errors, slowdowns, age. Retire cards on data, not gut feeling.</p>
+      </div>
+      <div class="fcard reveal">
+        <span class="fic" aria-hidden="true">↻</span>
+        <h3>Auto-updates + Shortcuts</h3>
+        <p>Notarized by Apple and updates itself quietly. Shortcuts actions let offloads trigger the rest of your workflow.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Pro pricing ============ -->
+<section id="pro">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">Pricing</div>
+      <h2>Free to offload. Pro when clients pay you for proof.</h2>
+    </div>
+    <div class="price-grid">
+      <div class="plan reveal">
+        <div class="pname">Free</div>
+        <div class="pprice">$0</div>
+        <div class="pterm">forever</div>
+        <ul>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>Verified offloads</b> to one destination — the full verify sequence, never a lite version</span></li>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>Recipes</b> in plain English</span></li>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>History</b> with Receipts</span></li>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>Demo Card</b> — try the whole flow without a camera</span></li>
+        </ul>
+        <a class="btn secondary" href="https://github.com/IsaacAPerez/ShootSort-releases/releases/latest/download/ShootSort.zip">Download for macOS</a>
+      </div>
+      <div class="plan pro reveal">
+        <div class="pname">ShootSort Pro</div>
+        <div class="pprice">$49</div>
+        <div class="pterm">one-time &middot; yours for good</div>
+        <p class="pquip">You don&rsquo;t rent your negatives — don&rsquo;t rent your offloader.</p>
+        <ul>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>MHL 2.0 exports</b> — the chain-of-custody format post houses ask for</span></li>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>Client PDF reports</b> — a clean, signed summary of every delivery</span></li>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>Backup automation</b> — second drive, kept caught up</span></li>
+          <li><span class="tick" aria-hidden="true">✓</span><span><b>Card health</b> — retire cards on data</span></li>
+        </ul>
+        <!-- TODO: swap to live payment link -->
+        <a class="btn primary" href="https://buy.stripe.com/test_cNibJ19H67cJaTNba9gA800">Buy ShootSort Pro</a>
+        <p class="sub-caption">14-day full Pro trial built in. Licenses are cryptographically signed and work offline.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <p class="foot-privacy">ShootSort never uploads your media. Photos and videos stay on your Mac; only the recipe text you type is sent to compile your plan.</p>
+    <div class="foot-row">
+      <a href="https://github.com/IsaacAPerez/ShootSort-releases/releases">Releases</a>
+      <span>&copy; 2026 Isaac Perez</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  if (!('IntersectionObserver' in window) ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+})();
+</script>
+
+</body>
+</html>
